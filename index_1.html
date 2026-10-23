@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Weather Dashboard</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 20px;
+    }
+
+    .dashboard-card {
+      background: #1e293b;
+      width: 100%;
+      max-width: 500px;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      position: relative;
+      z-index: 1;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    #search-form {
+      display: flex;
+      gap: 8px;
+      position: relative;
+      z-index: 10;
+    }
+
+    #city-input {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 1rem;
+      outline: none;
+      pointer-events: auto !important;
+      user-select: text !important;
+      -webkit-user-select: text !important;
+    }
+
+    #city-input:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.3);
+    }
+
+    button {
+      padding: 12px 18px;
+      border: none;
+      background: #0284c7;
+      color: #fff;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: #0369a1;
+    }
+
+    .error {
+      color: #f87171;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+
+    .spinner {
+      margin: 24px 0;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .weather-content {
+      margin-top: 24px;
+    }
+
+    .current-weather {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #334155;
+    }
+
+    .temp-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 2rem;
+      font-weight: 700;
+    }
+
+    #weather-icon {
+      font-size: 2.2rem;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 16px 0 24px;
+    }
+
+    .metric {
+      background: #0f172a;
+      padding: 12px;
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .metric .label {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      text-transform: uppercase;
+    }
+
+    .metric .val {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    h3 {
+      font-size: 1rem;
+      margin-bottom: 12px;
+      color: #cbd5e1;
+    }
+
+    .forecast-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+    }
+
+    .forecast-day {
+      background: #0f172a;
+      padding: 10px 4px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+
+    .forecast-day .day-name {
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    .forecast-day .day-icon {
+      font-size: 1.2rem;
+      margin: 4px 0;
+    }
+
+    .forecast-day .day-temp {
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard-card">
+    <header>
+      <h1>Live Weather Dashboard</h1>
+      <form id="search-form" autocomplete="off">
+        <input 
+          type="text" 
+          id="city-input" 
+          placeholder="Enter city (e.g. London, Chennai)..." 
+          autocomplete="off"
+          autofocus
+        />
+        <button type="submit" id="search-btn">Search</button>
+      </form>
+      <p id="error-msg" class="error hidden"></p>
+    </header>
+
+    <div id="loading" class="spinner hidden">Fetching weather data...</div>
+
+    <!-- Main Current Weather Display -->
+    <main id="weather-details" class="weather-content hidden">
+      <div class="current-weather">
+        <div>
+          <h2 id="city-name">City Name</h2>
+          <p id="condition-text">Condition</p>
+        </div>
+        <div class="temp-badge">
+          <span id="weather-icon">☀️</span>
+          <span id="temperature">--°C</span>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric">
+          <span class="label">Wind Speed</span>
+          <span id="wind-speed" class="val">-- km/h</span>
+        </div>
+        <div class="metric">
+          <span class="label">Humidity</span>
+          <span id="humidity" class="val">-- %</span>
+        </div>
+      </div>
+
+      <!-- 5-Day Forecast -->
+      <h3>5-Day Forecast</h3>
+      <div id="forecast-container" class="forecast-grid"></div>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById("search-form");
+    const cityInput = document.getElementById("city-input");
+    const errorMsg = document.getElementById("error-msg");
+    const loading = document.getElementById("loading");
+    const weatherDetails = document.getElementById("weather-details");
+
+    const cityNameEl = document.getElementById("city-name");
+    const conditionTextEl = document.getElementById("condition-text");
+    const weatherIconEl = document.getElementById("weather-icon");
+    const temperatureEl = document.getElementById("temperature");
+    const windSpeedEl = document.getElementById("wind-speed");
+    const humidityEl = document.getElementById("humidity");
+    const forecastContainer = document.getElementById("forecast-container");
+
+    function decodeWeatherCode(code) {
+      if (code === 0) return { label: "Clear sky", icon: "☀️" };
+      if ([1, 2, 3].includes(code)) return { label: "Partly cloudy", icon: "⛅" };
+      if ([45, 48].includes(code)) return { label: "Foggy", icon: "🌫️" };
+      if ([51, 53, 55, 61, 63, 65].includes(code)) return { label: "Rainy", icon: "🌧️" };
+      if ([71, 73, 75].includes(code)) return { label: "Snow", icon: "❄️" };
+      if ([95, 96, 99].includes(code)) return { label: "Thunderstorm", icon: "⛈️" };
+      return { label: "Overcast", icon: "☁️" };
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const query = cityInput.value.trim();
+
+      if (!query) {
+        showError("Please enter a city name.");
+        return;
+      }
+
+      hideError();
+      loading.classList.remove("hidden");
+      weatherDetails.classList.add("hidden");
+
+      try {
+        const geoRes = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`
+        );
+        if (!geoRes.ok) throw new Error("Network error contacting geocoding service.");
+        const geoData = await geoRes.json();
+
+        if (!geoData.results || geoData.results.length === 0) {
+          throw new Error(`City "${query}" not found. Try another location.`);
+        }
+
+        const { latitude, longitude, name, country } = geoData.results[0];
+
+        const weatherRes = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=weather_code,temperature_2m_max&timezone=auto`
+        );
+        if (!weatherRes.ok) throw new Error("Could not retrieve weather data.");
+        const weatherData = await weatherRes.json();
+
+        renderDashboard(name, country, weatherData);
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        loading.classList.add("hidden");
+      }
+    });
+
+    function renderDashboard(city, country, data) {
+      const current = data.current;
+      const daily = data.daily;
+      const currentCondition = decodeWeatherCode(current.weather_code);
+
+      cityNameEl.textContent = `${city}, ${country || ""}`;
+      conditionTextEl.textContent = currentCondition.label;
+      weatherIconEl.textContent = currentCondition.icon;
+      temperatureEl.textContent = `${Math.round(current.temperature_2m)}°C`;
+      windSpeedEl.textContent = `${current.wind_speed_10m} km/h`;
+      humidityEl.textContent = `${current.relative_humidity_2m}%`;
+
+      forecastContainer.innerHTML = "";
+      for (let i = 0; i < 5; i++) {
+        const date = new Date(daily.time[i]);
+        const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
+        const condition = decodeWeatherCode(daily.weather_code[i]);
+        const maxTemp = Math.round(daily.temperature_2m_max[i]);
+
+        const dayEl = document.createElement("div");
+        dayEl.className = "forecast-day";
+        dayEl.innerHTML = `
+          <div class="day-name">${dayName}</div>
+          <div class="day-icon">${condition.icon}</div>
+          <div class="day-temp">${maxTemp}°C</div>
+        `;
+        forecastContainer.appendChild(dayEl);
+      }
+
+      weatherDetails.classList.remove("hidden");
+    }
+
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.remove("hidden");
+      weatherDetails.classList.add("hidden");
+    }
+
+    function hideError() {
+      errorMsg.textContent = "";
+      errorMsg.classList.add("hidden");
+    }
+  </script>
+</body>
+</html>
